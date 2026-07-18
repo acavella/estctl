@@ -1,0 +1,16 @@
+---
+server:
+  host: "est.example.com"
+  port: 8443
+  tls_verify: true
+
+paths:
+  config_dir: "/etc/estctl"
+  state_dir: "/var/lib/estctl"
+  certs_dir: "/etc/pki/tls/certs"
+  private_key: "/etc/pki/tls/private/est_client.key"
+
+auth:
+  method: "basic" # basic or mtls
+  username: "est_user"
+  password: "secure_password_here"

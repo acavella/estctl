@@ -5,10 +5,14 @@
 
 set -eo pipefail
 
-# --- Configuration Defaults ---
-EST_SERVER="${EST_SERVER:-localhost:8443}"
-CONFIG_DIR="/etc/estctl"
-STATE_DIR="/var/lib/estctl"
+# --- Defaults ---
+CONFIG_FILE="/etc/estctl/config.yaml"
+
+# --- Dependencies Check ---
+if ! command -v yq &> /dev/null; then
+    echo "Error: 'yq' utility is required to parse YAML configurations but was not found." >&2
+    exit 1
+fi
 
 show_help() {
     cat << EOF
@@ -17,37 +21,55 @@ Usage: estctl [options] <command> [args]
 An RFC 7030 EST client script for certificate lifecycle management.
 
 Options:
-  -s, --server <host:port>   EST server address (Default: $EST_SERVER)
+  -c, --config <path>        Path to configuration YAML (Default: $CONFIG_FILE)
   -h, --help                 Show this help message
 
 Commands:
   cacerts                    Retrieve the CA Certificates trust anchor
   enroll                     Enroll a new certificate (requires CSR)
   reenroll                   Renew an existing certificate
-  status                     Check current certificate expiration status
 EOF
+}
+
+load_config() {
+    if [[ ! -f "$CONFIG_FILE" ]]; then
+        echo "Error: Configuration file not found at $CONFIG_FILE" >&2
+        exit 1
+    fi
+
+    # Read values using yq
+    EST_HOST=$(yq '.server.host' "$CONFIG_FILE")
+    EST_PORT=$(yq '.server.port' "$CONFIG_FILE")
+    TLS_VERIFY=$(yq '.server.tls_verify' "$CONFIG_FILE")
+    
+    CONFIG_DIR=$(yq '.paths.config_dir' "$CONFIG_FILE")
+    STATE_DIR=$(yq '.paths.state_dir' "$CONFIG_FILE")
+    CERTS_DIR=$(yq '.paths.certs_dir' "$CONFIG_FILE")
+    PRIV_KEY=$(yq '.paths.private_key' "$CONFIG_FILE")
+    
+    AUTH_METHOD=$(yq '.auth.method' "$CONFIG_FILE")
+    AUTH_USER=$(yq '.auth.username' "$CONFIG_FILE")
+    AUTH_PASS=$(yq '.auth.password' "$CONFIG_FILE")
+
+    # Construct the base URL
+    EST_SERVER="${EST_HOST}:${EST_PORT}"
 }
 
 cmd_cacerts() {
     echo "[-] Fetching CA certificates from https://${EST_SERVER}/.well-known/est/cacerts ..."
-    # Your curl / openssl logic here
+    # curl / openssl logic goes here using loaded variables
 }
 
 cmd_enroll() {
-    echo "[-] Submitting enrollment request to https://${EST_SERVER}/.well-known/est/simpleenroll ..."
-    # Your curl / openssl logic here
-}
-
-cmd_reenroll() {
-    echo "[-] Submitting re-enrollment request to https://${EST_SERVER}/.well-known/est/simplereenroll ..."
-    # Your curl / openssl logic here
+    echo "[-] Enrolling via https://${EST_SERVER}/.well-known/est/simpleenroll ..."
+    echo "[-] Using authentication method: ${AUTH_METHOD}"
 }
 
 # --- Parse Global Options ---
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        -s|--server)
-            EST_SERVER="$2"
+        -c|--config)
+            CONFIG_FILE="$2"
             shift 2
             ;;
         -h|--help)
@@ -60,12 +82,14 @@ while [[ $# -gt 0 ]]; do
             exit 1
             ;;
         *)
-            break # First non-option is our command
+            break
             ;;
     esac
 done
 
-# --- Parse Subcommand ---
+# --- Initialize and Execute ---
+load_config
+
 COMMAND="$1"
 shift 2>/dev/null || true
 
@@ -77,10 +101,7 @@ case "$COMMAND" in
         cmd_enroll "$@"
         ;;
     reenroll)
-        cmd_reenroll "$@"
-        ;;
-    status)
-        echo "Checking local cert status..."
+        echo "[-] Re-enrolling..."
         ;;
     "")
         echo "Error: Missing command." >&2
