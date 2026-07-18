@@ -14,6 +14,11 @@ if ! command -v yq &> /dev/null; then
     exit 1
 fi
 
+if ! command -v curl &> /dev/null; then
+    echo "Error: 'curl' utility is required to make HTTP(s) requests but was not found." >&2
+    exit 1
+fi
+
 show_help() {
     cat << EOF
 Usage: estctl [options] <command> [args]
@@ -56,8 +61,52 @@ load_config() {
 }
 
 cmd_cacerts() {
-    echo "[-] Fetching CA certificates from https://${EST_SERVER}/.well-known/est/cacerts ..."
-    # curl / openssl logic goes here using loaded variables
+    local cacerts_url="https://${EST_SERVER}/.well-known/est/cacerts"
+    local output_p7="${STATE_DIR}/cacerts.p7"
+    local output_pem="${CERTS_DIR}/est_ca_trust.pem"
+    
+    # Ensure target directories exist
+    mkdir -p "$STATE_DIR" "$CERTS_DIR"
+
+    # Set curl verification flags based on config
+    local curl_opts=("-s" "-S" "-f")
+    if [[ "$TLS_VERIFY" != "true" ]]; then
+        curl_opts+=("-k")
+    fi
+
+    echo "[-] Fetching CA certificates from ${cacerts_url} ..."
+    
+    # 1. Fetch the raw PKCS#7 data from the EST server
+    if ! curl "${curl_opts[@]}" -o "$output_p7" "$cacerts_url"; then
+        echo "Error: Failed to fetch CA certificates from EST server." >&2
+        exit 1
+    fi
+
+    # Check if the file is empty (some servers return 204 or empty on misconfiguration)
+    if [[ ! -s "$output_p7" ]]; then
+        echo "Error: Received an empty response from the EST server." >&2
+        rm -f "$output_p7"
+        exit 1
+    fi
+
+    echo "[-] Decoding PKCS#7 certificate bundle..."
+
+    # 2. RFC 7030 allows the response to be base64 wrapped or raw DER. 
+    # OpenSSL's pkcs7 tool handles both if we pipe it cleanly, but it expects PEM or DER.
+    # We attempt to print it out as clean text/PEM.
+    if ! openssl pkcs7 -in "$output_p7" -inform DER -print_certs -out "$output_pem" 2>/dev/null; then
+        # If raw DER parsing fails, the server likely returned it as base64-encoded text (PEM-ish)
+        if ! openssl pkcs7 -in "$output_p7" -inform PEM -print_certs -out "$output_pem" 2>/dev/null; then
+            echo "Error: Failed to parse the received data as a valid PKCS#7 bundle." >&2
+            rm -f "$output_p7"
+            exit 1
+        fi
+    fi
+
+    echo "[+] Success! CA certificates stored in PEM format at: ${output_pem}"
+    
+    # Clean up the raw transit file
+    rm -f "$output_p7"
 }
 
 cmd_enroll() {
