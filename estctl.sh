@@ -19,6 +19,11 @@ if ! command -v curl &> /dev/null; then
     exit 1
 fi
 
+if ! command -v openssl &> /dev/null; then
+    echo "Error: 'openssl' utility is required to handle PKCS#7 certificates but was not found." >&2
+    exit 1
+fi
+
 show_help() {
     cat << EOF
 Usage: estctl [options] <command> [args]
