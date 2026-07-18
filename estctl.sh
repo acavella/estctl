@@ -6,7 +6,7 @@
 set -eo pipefail
 
 # --- Defaults ---
-CONFIG_FILE="/etc/estctl/config.yaml"
+CONFIG_FILE="config.yaml"
 
 # --- Dependencies Check ---
 if ! command -v yq &> /dev/null; then
