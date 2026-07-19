@@ -74,7 +74,7 @@ cmd_cacerts() {
     mkdir -p "$STATE_DIR" "$CERTS_DIR"
 
     # Set curl verification flags based on config
-    local curl_opts=("-s" "-S" "-f")
+    local curl_opts=("-s" "-S" "-f" "--tlsv1.2")
     if [[ "$TLS_VERIFY" != "true" ]]; then
         curl_opts+=("-k")
     fi
