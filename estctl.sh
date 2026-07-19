@@ -57,6 +57,8 @@ load_config() {
     STATE_DIR=$(yq '.paths.state_dir' "$CONFIG_FILE")
     CERTS_DIR=$(yq '.paths.certs_dir' "$CONFIG_FILE")
     PRIV_KEY=$(yq '.paths.private_key' "$CONFIG_FILE")
+    BOOTSTRAP_CERT=$(yq '.paths.bootstrap_cert' "$CONFIG_FILE")
+    BOOTSTRAP_KEY=$(yq '.paths.bootstrap_key' "$CONFIG_FILE")
     
     AUTH_METHOD=$(yq '.auth.method' "$CONFIG_FILE")
     AUTH_USER=$(yq '.auth.username' "$CONFIG_FILE")
