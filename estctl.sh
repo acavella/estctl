@@ -49,7 +49,8 @@ load_config() {
 
     # Read values using yq
     EST_HOST=$(yq '.server.host' "$CONFIG_FILE")
-    EST_PORT=$(yq '.server.port' "$CONFIG_FILE")
+    EST_PUBLIC_PORT=$(yq '.server.public_port' "$CONFIG_FILE")
+    EST_ADMIN_PORT=$(yq '.server.admin_port' "$CONFIG_FILE")
     TLS_VERIFY=$(yq '.server.tls_verify' "$CONFIG_FILE")
     
     CONFIG_DIR=$(yq '.paths.config_dir' "$CONFIG_FILE")
@@ -61,12 +62,13 @@ load_config() {
     AUTH_USER=$(yq '.auth.username' "$CONFIG_FILE")
     AUTH_PASS=$(yq '.auth.password' "$CONFIG_FILE")
 
-    # Construct the base URL
-    EST_SERVER="${EST_HOST}:${EST_PORT}"
+    # Construct the base target addresses
+    EST_PUBLIC_SERVER="${EST_HOST}:${EST_PUBLIC_PORT}"
+    EST_ADMIN_SERVER="${EST_HOST}:${EST_ADMIN_PORT}"
 }
 
 cmd_cacerts() {
-    local cacerts_url="https://${EST_SERVER}/.well-known/est/cacerts"
+    local cacerts_url="https://${EST_PUBLIC_SERVER}/.well-known/est/cacerts"
     local output_p7="${STATE_DIR}/cacerts.p7"
     local output_pem="${CERTS_DIR}/est_ca_trust.pem"
     
@@ -115,8 +117,11 @@ cmd_cacerts() {
 }
 
 cmd_enroll() {
-    echo "[-] Enrolling via https://${EST_SERVER}/.well-known/est/simpleenroll ..."
-    echo "[-] Using authentication method: ${AUTH_METHOD}"
+    # Typically, operations like simpleenroll interact with the admin interface
+    local enroll_url="https://${EST_ADMIN_SERVER}/.well-known/est/simpleenroll"
+    echo "[-] Enrolling via administrative endpoint: ${enroll_url} ..."
+    echo "[-] Authentication strategy: ${AUTH_METHOD}"
+    # Next step: implementing CSR reading and authentication wrappers
 }
 
 # --- Parse Global Options ---

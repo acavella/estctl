@@ -1,7 +1,8 @@
 ---
 server:
   host: "est.example.com"
-  port: 8443
+  public_port: 443
+  admin_port: 8443
   tls_verify: true
 
 paths:
