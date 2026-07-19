@@ -15,3 +15,8 @@ auth:
   method: "basic" # basic or mtls
   username: "est_user"
   password: "secure_password_here"
+
+csr_defaults:
+  key: "rsa4096"        # Options: rsa2048, rsa3072, rsa4096, secp384r1
+  hash: "sha384"        # Options: sha256, sha384
+  cn: "endpoint.example.com"
