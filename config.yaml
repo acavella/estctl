@@ -10,6 +10,8 @@ paths:
   state_dir: "/var/lib/estctl"
   certs_dir: "/etc/pki/tls/certs"
   private_key: "/etc/pki/tls/private/est_client.key"
+  bootstrap_cert: "/etc/pki/tls/certs/bootstrap.pem" # Used for initial enrollment when using mtls auth method
+  bootstrap_key: "/etc/pki/tls/private/bootstrap.key" # Used for initial enrollment when using mtls auth method
 
 auth:
   method: "basic" # basic or mtls
