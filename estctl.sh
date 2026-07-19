@@ -62,6 +62,11 @@ load_config() {
     AUTH_USER=$(yq '.auth.username' "$CONFIG_FILE")
     AUTH_PASS=$(yq '.auth.password' "$CONFIG_FILE")
 
+    # Cryptographic CSR Variables
+    CSR_KEY=$(yq '.csr_defaults.key' "$CONFIG_FILE")
+    CSR_HASH=$(yq '.csr_defaults.hash' "$CONFIG_FILE")
+    CSR_CN=$(yq '.csr_defaults.cn' "$CONFIG_FILE")
+
     # Construct the base target addresses
     EST_PUBLIC_SERVER="${EST_HOST}:${EST_PUBLIC_PORT}"
     EST_ADMIN_SERVER="${EST_HOST}:${EST_ADMIN_PORT}"
