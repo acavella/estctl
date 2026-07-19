@@ -163,14 +163,72 @@ cmd_cacerts() {
 }
 
 cmd_enroll() {
-    # Typically, operations like simpleenroll interact with the admin interface
-    local enroll_url="https://${EST_ADMIN_SERVER}/.well-known/est/simpleenroll"
-    
-    # Run dynamic generation prior to HTTP request execution
+    # 1. Determine target server based on authentication method
+    local target_server
+    if [[ "$AUTH_METHOD" == "basic" ]]; then
+        target_server="$EST_PUBLIC_SERVER"
+    elif [[ "$AUTH_METHOD" == "mtls" ]]; then
+        target_server="$EST_ADMIN_SERVER"
+    else
+        echo "Error: Unknown auth method '$AUTH_METHOD'. Must be 'basic' or 'mtls'." >&2
+        exit 1
+    fi
+
+    local enroll_url="https://${target_server}/.well-known/est/simpleenroll"
+    local csr_file="${STATE_DIR}/client.csr"
+    local b64_csr="${STATE_DIR}/client.b64"
+    local output_p7="${STATE_DIR}/enrolled_cert.p7"
+    local output_pem="${CERTS_DIR}/est_client.pem"
+
+    # 2. Run dynamic key and CSR generation
     generate_key_and_csr
 
+    # 3. RFC 7030 Section 4.2.1: The CSR must be base64-encoded but WITHOUT the PEM headers/footers
+    grep -v '^-' "$csr_file" > "$b64_csr"
+
     echo "[-] Executing simpleenroll request to ${enroll_url} ..."
-    # Ready for payload transport via curl
+    echo "[-] Authentication strategy: ${AUTH_METHOD}"
+
+    # 4. Prepare base curl options
+    local curl_opts=("-s" "-S" "-f" "-X" "POST")
+    curl_opts+=("-H" "Content-Type: application/pkcs10")
+    curl_opts+=("--data-binary" "@${b64_csr}")
+
+    if [[ "$TLS_VERIFY" != "true" ]]; then
+        curl_opts+=("-k")
+    fi
+
+    # 5. Append authentication-specific curl flags
+    if [[ "$AUTH_METHOD" == "basic" ]]; then
+        curl_opts+=("-u" "${AUTH_USER}:${AUTH_PASS}")
+    elif [[ "$AUTH_METHOD" == "mtls" ]]; then
+        # mTLS requires a bootstrap certificate or existing identity to authenticate
+        # We assume these are defined in your environment or config
+        # curl_opts+=("--cert" "$BOOTSTRAP_CERT" "--key" "$BOOTSTRAP_KEY")
+        echo "[-] Note: mTLS selected. Ensure bootstrap credentials are provided to curl."
+    fi
+
+    # 6. Execute transport
+    if ! curl "${curl_opts[@]}" -o "$output_p7" "$enroll_url"; then
+        echo "Error: simpleenroll request failed." >&2
+        rm -f "$b64_csr"
+        exit 1
+    fi
+
+    echo "[-] Decoding returned PKCS#7 client certificate..."
+
+    if ! openssl pkcs7 -in "$output_p7" -inform DER -print_certs -out "$output_pem" 2>/dev/null; then
+        if ! openssl pkcs7 -in "$output_p7" -inform PEM -print_certs -out "$output_pem" 2>/dev/null; then
+            echo "Error: Failed to parse the received client certificate." >&2
+            rm -f "$b64_csr" "$output_p7"
+            exit 1
+        fi
+    fi
+
+    echo "[+] Success! Enrolled certificate stored at: ${output_pem}"
+    
+    # Clean up transient files
+    rm -f "$b64_csr" "$output_p7"
 }
 
 # --- Parse Global Options ---
