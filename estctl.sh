@@ -185,11 +185,10 @@ cmd_enroll() {
     # 2. Run dynamic key and CSR generation
     generate_key_and_csr
 
-    # 3. RFC 7030 Section 4.2.1: The CSR must be base64-encoded but WITHOUT the PEM headers/footers
+    # 3. Strip PEM headers for EST RFC 7030 strict compliance
     grep -v '^-' "$csr_file" > "$b64_csr"
 
     echo "[-] Executing simpleenroll request to ${enroll_url} ..."
-    echo "[-] Authentication strategy: ${AUTH_METHOD}"
 
     # 4. Prepare base curl options
     local curl_opts=("-s" "-S" "-f" "-X" "POST")
@@ -202,12 +201,20 @@ cmd_enroll() {
 
     # 5. Append authentication-specific curl flags
     if [[ "$AUTH_METHOD" == "basic" ]]; then
+        echo "[-] Authenticating via HTTP Basic Auth."
         curl_opts+=("-u" "${AUTH_USER}:${AUTH_PASS}")
+        
     elif [[ "$AUTH_METHOD" == "mtls" ]]; then
-        # mTLS requires a bootstrap certificate or existing identity to authenticate
-        # We assume these are defined in your environment or config
-        # curl_opts+=("--cert" "$BOOTSTRAP_CERT" "--key" "$BOOTSTRAP_KEY")
-        echo "[-] Note: mTLS selected. Ensure bootstrap credentials are provided to curl."
+        if [[ ! -f "$BOOTSTRAP_CERT" || ! -f "$BOOTSTRAP_KEY" ]]; then
+            echo "Error: mTLS selected but bootstrap credentials not found." >&2
+            echo "   Checked Cert: $BOOTSTRAP_CERT" >&2
+            echo "   Checked Key : $BOOTSTRAP_KEY" >&2
+            rm -f "$b64_csr"
+            exit 1
+        fi
+        
+        echo "[-] Authenticating via mTLS using bootstrap credentials."
+        curl_opts+=("--cert" "$BOOTSTRAP_CERT" "--key" "$BOOTSTRAP_KEY")
     fi
 
     # 6. Execute transport
