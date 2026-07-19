@@ -72,6 +72,47 @@ load_config() {
     EST_ADMIN_SERVER="${EST_HOST}:${EST_ADMIN_PORT}"
 }
 
+generate_key_and_csr() {
+    local csr_out="${STATE_DIR}/client.csr"
+    mkdir -p "$(dirname "$PRIV_KEY")" "$STATE_DIR"
+
+    echo "[-] Generating private key and CSR (${CSR_CN}) via OpenSSL..."
+
+    # 1. Validate hash strength
+    case "$CSR_HASH" in
+        sha256|sha384) ;;
+        *) echo "Error: Unsupported hash type '$CSR_HASH'. Choose sha256 or sha384." >&2; exit 1 ;;
+    esac
+
+    # 2. Generate based on key type selection
+    case "$CSR_KEY" in
+        rsa2048)
+            openssl req -new -newkey rsa:2048 -nodes -keyout "$PRIV_KEY" -out "$csr_out" \
+                -"$CSR_HASH" -subj "/CN=${CSR_CN}" 2>/dev/null
+            ;;
+        rsa3072)
+            openssl req -new -newkey rsa:3072 -nodes -keyout "$PRIV_KEY" -out "$csr_out" \
+                -"$CSR_HASH" -subj "/CN=${CSR_CN}" 2>/dev/null
+            ;;
+        rsa4096)
+            openssl req -new -newkey rsa:4096 -nodes -keyout "$PRIV_KEY" -out "$csr_out" \
+                -"$CSR_HASH" -subj "/CN=${CSR_CN}" 2>/dev/null
+            ;;
+        secp384r1)
+            # Elliptic Curve keys require creating parameters or explicit curve targeting
+            openssl req -new -newkey ec:<(openssl ecparam -name secp384r1) -nodes -keyout "$PRIV_KEY" \
+                -out "$csr_out" -"$CSR_HASH" -subj "/CN=${CSR_CN}" 2>/dev/null
+            ;;
+        *)
+            echo "Error: Unsupported key type '$CSR_KEY'. Choose rsa2048, rsa3072, rsa4096, or secp384r1." >&2
+            exit 1
+            ;;
+    esac
+
+    echo "[+] Private key securely saved to: $PRIV_KEY"
+    echo "[+] CSR generated at: $csr_out"
+}
+
 cmd_cacerts() {
     local cacerts_url="https://${EST_PUBLIC_SERVER}/.well-known/est/cacerts"
     local output_p7="${STATE_DIR}/cacerts.p7"
@@ -124,9 +165,12 @@ cmd_cacerts() {
 cmd_enroll() {
     # Typically, operations like simpleenroll interact with the admin interface
     local enroll_url="https://${EST_ADMIN_SERVER}/.well-known/est/simpleenroll"
-    echo "[-] Enrolling via administrative endpoint: ${enroll_url} ..."
-    echo "[-] Authentication strategy: ${AUTH_METHOD}"
-    # Next step: implementing CSR reading and authentication wrappers
+    
+    # Run dynamic generation prior to HTTP request execution
+    generate_key_and_csr
+
+    echo "[-] Executing simpleenroll request to ${enroll_url} ..."
+    # Ready for payload transport via curl
 }
 
 # --- Parse Global Options ---
