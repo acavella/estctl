@@ -63,7 +63,6 @@ load_config() {
     
     AUTH_METHOD=$(yq '.auth.method' "$CONFIG_FILE")
     AUTH_USER=$(yq '.auth.username' "$CONFIG_FILE")
-    AUTH_PASS=$(yq '.auth.password' "$CONFIG_FILE")
 
     # Cryptographic CSR Variables
     CSR_KEY=$(yq '.csr_defaults.key' "$CONFIG_FILE")
