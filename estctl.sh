@@ -87,43 +87,37 @@ load_config() {
 }
 
 generate_key_and_csr() {
+    # Accept an optional argument for the key path, default to standard PRIV_KEY
+    local target_key="${1:-$PRIV_KEY}"
     local csr_out="${STATE_DIR}/client.csr"
-    mkdir -p "$(dirname "$PRIV_KEY")" "$STATE_DIR"
+    
+    mkdir -p "$(dirname "$target_key")" "$STATE_DIR"
 
     echo "[-] Generating private key and CSR (${CSR_CN}) via OpenSSL..."
 
-    # 1. Validate hash strength
     case "$CSR_HASH" in
         sha256|sha384) ;;
-        *) echo "Error: Unsupported hash type '$CSR_HASH'. Choose sha256 or sha384." >&2; exit 1 ;;
+        *) echo "Error: Unsupported hash type '$CSR_HASH'." >&2; exit 1 ;;
     esac
 
-    # 2. Generate based on key type selection
     case "$CSR_KEY" in
         rsa2048)
-            openssl req -new -newkey rsa:2048 -nodes -keyout "$PRIV_KEY" -out "$csr_out" \
-                -"$CSR_HASH" -subj "/CN=${CSR_CN}" 2>/dev/null
-            ;;
+            openssl req -new -newkey rsa:2048 -nodes -keyout "$target_key" -out "$csr_out" \
+                -"$CSR_HASH" -subj "/CN=${CSR_CN}" 2>/dev/null ;;
         rsa3072)
-            openssl req -new -newkey rsa:3072 -nodes -keyout "$PRIV_KEY" -out "$csr_out" \
-                -"$CSR_HASH" -subj "/CN=${CSR_CN}" 2>/dev/null
-            ;;
+            openssl req -new -newkey rsa:3072 -nodes -keyout "$target_key" -out "$csr_out" \
+                -"$CSR_HASH" -subj "/CN=${CSR_CN}" 2>/dev/null ;;
         rsa4096)
-            openssl req -new -newkey rsa:4096 -nodes -keyout "$PRIV_KEY" -out "$csr_out" \
-                -"$CSR_HASH" -subj "/CN=${CSR_CN}" 2>/dev/null
-            ;;
+            openssl req -new -newkey rsa:4096 -nodes -keyout "$target_key" -out "$csr_out" \
+                -"$CSR_HASH" -subj "/CN=${CSR_CN}" 2>/dev/null ;;
         secp384r1)
-            # Elliptic Curve keys require creating parameters or explicit curve targeting
-            openssl req -new -newkey ec:<(openssl ecparam -name secp384r1) -nodes -keyout "$PRIV_KEY" \
-                -out "$csr_out" -"$CSR_HASH" -subj "/CN=${CSR_CN}" 2>/dev/null
-            ;;
+            openssl req -new -newkey ec:<(openssl ecparam -name secp384r1) -nodes -keyout "$target_key" \
+                -out "$csr_out" -"$CSR_HASH" -subj "/CN=${CSR_CN}" 2>/dev/null ;;
         *)
-            echo "Error: Unsupported key type '$CSR_KEY'. Choose rsa2048, rsa3072, rsa4096, or secp384r1." >&2
-            exit 1
-            ;;
+            echo "Error: Unsupported key type '$CSR_KEY'." >&2; exit 1 ;;
     esac
 
-    echo "[+] Private key securely saved to: $PRIV_KEY"
+    echo "[+] Private key securely saved to: $target_key"
     echo "[+] CSR generated at: $csr_out"
 }
 
