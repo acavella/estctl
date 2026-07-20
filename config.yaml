@@ -27,3 +27,6 @@ csr_defaults:
   key: "rsa4096"        # Options: rsa2048, rsa3072, rsa4096, secp384r1
   hash: "sha384"        # Options: sha256, sha384
   cn: "endpoint.example.com"
+
+operations:
+  renew_warning_days: 30
