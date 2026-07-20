@@ -342,6 +342,62 @@ cmd_reenroll() {
     rm -f "$b64_csr" "$output_p7"
 }
 
+cmd_status() {
+    local cert_file="${CERTS_DIR}/est_client.pem"
+    
+    # 1. Ensure the certificate exists
+    if [[ ! -f "$cert_file" ]]; then
+        echo "Error: Certificate not found at $cert_file" >&2
+        echo "The node may not be enrolled yet." >&2
+        exit 1
+    fi
+
+    # 2. Extract certificate metadata
+    local subject
+    local issuer
+    local expiration_date
+    subject=$(openssl x509 -subject -noout -in "$cert_file" | sed 's/^subject=//')
+    issuer=$(openssl x509 -issuer -noout -in "$cert_file" | sed 's/^issuer=//')
+    expiration_date=$(openssl x509 -enddate -noout -in "$cert_file" | cut -d= -f2)
+
+    if [[ -z "$expiration_date" ]]; then
+        echo "Error: Could not parse expiration date from $cert_file" >&2
+        exit 1
+    fi
+
+    # 3. Convert dates to Unix Epoch for math (Standard GNU date format)
+    local exp_epoch
+    local now_epoch
+    exp_epoch=$(date -d "$expiration_date" +%s 2>/dev/null) || {
+        echo "Error: Could not parse date string '$expiration_date'. Ensure GNU date is installed." >&2
+        exit 1
+    }
+    now_epoch=$(date +%s)
+
+    # 4. Calculate the delta
+    local diff_sec=$(( exp_epoch - now_epoch ))
+    local days_remaining=$(( diff_sec / 86400 ))
+
+    # 5. Output the results
+    echo "[-] Certificate Status"
+    echo "    File:        $cert_file"
+    echo "    Subject:    $subject"
+    echo "    Issuer:     $issuer"
+    echo "    Valid Until: $expiration_date"
+
+    # 6. Evaluate health and exit accordingly
+    if [[ $days_remaining -lt 0 ]]; then
+        echo "    State:       [ EXPIRED ] ($(( -days_remaining )) days ago)"
+        exit 2 # Unique exit code for monitoring alerts
+    elif [[ $days_remaining -le 30 ]]; then
+        echo "    State:       [ WARNING ] ($days_remaining days remaining - renewal recommended)"
+    else
+        echo "    State:       [ VALID ] ($days_remaining days remaining)"
+    fi
+    
+    exit 0
+}
+
 # --- Main Runtime Routing ---
 CLI_PASS=""
 while [[ $# -gt 0 ]]; do
