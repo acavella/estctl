@@ -116,21 +116,20 @@ operations:
     estctl status
     ```
 
-    Exit 0: Valid (or within the warning window)
+    **Exit Codes:**
+    - 0: Valid (or within the warning window)
+    - 1: Execution error / file missing
+    - 2: Certificate is fully expired
 
-    Exit 1: Execution error / file missing
+    **AUTOMATION EXAMPLE**
 
-    Exit 2: Certificate is fully expired
+    Because estctl handles its own exit codes gracefully, you can automate renewals using a simple cron job or systemd timer:
 
-### AUTOMATION EXAMPLE
+    Check status daily; if it returns a warning or expired state, trigger re-enrollment:
 
-Because estctl handles its own exit codes gracefully, you can automate renewals using a simple cron job or systemd timer:
-
-Check status daily; if it returns a warning or expired state, trigger re-enrollment:
-
-``` bash
-estctl status || estctl reenroll
-```
+    ``` bash
+    estctl status || estctl reenroll
+    ```
 
 ## LICENSE
 
