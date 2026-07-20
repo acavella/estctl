@@ -182,15 +182,13 @@ cmd_enroll() {
     local output_p7="${STATE_DIR}/enrolled_cert.p7"
     local output_pem="${CERTS_DIR}/est_client.pem"
 
-    # 2. Run dynamic key and CSR generation
     generate_key_and_csr
 
-    # 3. Strip PEM headers for EST RFC 7030 strict compliance
+    # Strip PEM headers for EST RFC 7030 strict compliance
     grep -v '^-' "$csr_file" > "$b64_csr"
 
     echo "[-] Executing simpleenroll request to ${enroll_url} ..."
 
-    # 4. Prepare base curl options
     local curl_opts=("-s" "-S" "-f" "-X" "POST")
     curl_opts+=("-H" "Content-Type: application/pkcs10")
     curl_opts+=("--data-binary" "@${b64_csr}")
@@ -202,13 +200,26 @@ cmd_enroll() {
     # 5. Append authentication-specific curl flags
     if [[ "$AUTH_METHOD" == "basic" ]]; then
         echo "[-] Authenticating via HTTP Basic Auth."
-        curl_opts+=("-u" "${AUTH_USER}:${AUTH_PASS}")
+        
+        # Check if password was provided via CLI, otherwise prompt interactively
+        local enroll_pass="$CLI_PASS"
+        if [[ -z "$enroll_pass" ]]; then
+            read -r -s -p "Enter basic auth password for '${AUTH_USER}': " enroll_pass
+            echo "" # Add a newline since read -s suppresses the return key
+        fi
+
+        # Final sanity check
+        if [[ -z "$enroll_pass" ]]; then
+            echo "Error: Password is required for HTTP Basic Authentication." >&2
+            rm -f "$b64_csr"
+            exit 1
+        fi
+
+        curl_opts+=("-u" "${AUTH_USER}:${enroll_pass}")
         
     elif [[ "$AUTH_METHOD" == "mtls" ]]; then
         if [[ ! -f "$BOOTSTRAP_CERT" || ! -f "$BOOTSTRAP_KEY" ]]; then
             echo "Error: mTLS selected but bootstrap credentials not found." >&2
-            echo "   Checked Cert: $BOOTSTRAP_CERT" >&2
-            echo "   Checked Key : $BOOTSTRAP_KEY" >&2
             rm -f "$b64_csr"
             exit 1
         fi
@@ -236,7 +247,6 @@ cmd_enroll() {
 
     echo "[+] Success! Enrolled certificate stored at: ${output_pem}"
     
-    # Clean up transient files
     rm -f "$b64_csr" "$output_p7"
 }
 
