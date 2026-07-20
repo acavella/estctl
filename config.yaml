@@ -5,6 +5,11 @@ server:
   admin_port: 8443
   tls_verify: true
 
+endpoints:
+  cacerts: ".well-known/est/cacerts"
+  simpleenroll: ".well-known/est/simpleenroll"
+  simplereenroll: ".well-known/est/simplereenroll"
+
 paths:
   config_dir: "/etc/estctl"
   state_dir: "/var/lib/estctl"
