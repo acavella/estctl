@@ -250,12 +250,12 @@ cmd_enroll() {
 
 cmd_reenroll() {
     local target_server
-    if [[ "$AUTH_METHOD" == "basic" ]]; then
+    if [[ "$REENROLL_AUTH_METHOD" == "basic" ]]; then
         target_server="$EST_PUBLIC_SERVER"
-    elif [[ "$AUTH_METHOD" == "mtls" ]]; then
+    elif [[ "$REENROLL_AUTH_METHOD" == "mtls" ]]; then
         target_server="$EST_ADMIN_SERVER"
     else
-        echo "Error: Unknown auth method '$AUTH_METHOD'." >&2
+        echo "Error: Unknown re-enroll auth method '$REENROLL_AUTH_METHOD'." >&2
         exit 1
     fi
 
@@ -286,7 +286,7 @@ cmd_reenroll() {
         curl_opts+=("-k")
     fi
 
-    if [[ "$AUTH_METHOD" == "basic" ]]; then
+    if [[ "$REENROLL_AUTH_METHOD" == "basic" ]]; then
         echo "[-] Authenticating via HTTP Basic Auth."
         
         local enroll_pass="$CLI_PASS"
