@@ -242,10 +242,29 @@ cmd_enroll() {
 }
 
 # --- Main Runtime Routing ---
+CLI_PASS=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        -c|--config) CONFIG_FILE="$2"; shift 2 ;;
-        *) break ;;
+        -c|--config)
+            CONFIG_FILE="$2"
+            shift 2
+            ;;
+        -p|--password)
+            CLI_PASS="$2"
+            shift 2
+            ;;
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        -*)
+            echo "Error: Unknown option $1" >&2
+            show_help
+            exit 1
+            ;;
+        *)
+            break
+            ;;
     esac
 done
 
