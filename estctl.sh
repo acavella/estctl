@@ -168,12 +168,12 @@ cmd_cacerts() {
 
 cmd_enroll() {
     local target_server
-    if [[ "$AUTH_METHOD" == "basic" ]]; then
+    if [[ "$ENROLL_AUTH_METHOD" == "basic" ]]; then
         target_server="$EST_PUBLIC_SERVER"
-    elif [[ "$AUTH_METHOD" == "mtls" ]]; then
+    elif [[ "$ENROLL_AUTH_METHOD" == "mtls" ]]; then
         target_server="$EST_ADMIN_SERVER"
     else
-        echo "Error: Unknown auth method '$AUTH_METHOD'. Must be 'basic' or 'mtls'." >&2
+        echo "Error: Unknown enroll auth method '$ENROLL_AUTH_METHOD'." >&2
         exit 1
     fi
 
@@ -199,7 +199,7 @@ cmd_enroll() {
         curl_opts+=("-k")
     fi
 
-    if [[ "$AUTH_METHOD" == "basic" ]]; then
+    if [[ "$ENROLL_AUTH_METHOD" == "basic" ]]; then
         echo "[-] Authenticating via HTTP Basic Auth."
         
         local enroll_pass="$CLI_PASS"
@@ -216,7 +216,7 @@ cmd_enroll() {
 
         curl_opts+=("-u" "${AUTH_USER}:${enroll_pass}")
         
-    elif [[ "$AUTH_METHOD" == "mtls" ]]; then
+    elif [[ "$ENROLL_AUTH_METHOD" == "mtls" ]]; then
         if [[ ! -f "$BOOTSTRAP_CERT" || ! -f "$BOOTSTRAP_KEY" ]]; then
             echo "Error: mTLS selected but bootstrap credentials not found." >&2
             rm -f "$b64_csr"
