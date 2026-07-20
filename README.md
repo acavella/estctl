@@ -117,7 +117,9 @@ operations:
     ```
 
     Exit 0: Valid (or within the warning window)
+
     Exit 1: Execution error / file missing
+
     Exit 2: Certificate is fully expired
 
 ## AUTOMATION EXAMPLE
