@@ -122,7 +122,7 @@ operations:
 
     Exit 2: Certificate is fully expired
 
-## AUTOMATION EXAMPLE
+### AUTOMATION EXAMPLE
 
 Because estctl handles its own exit codes gracefully, you can automate renewals using a simple cron job or systemd timer:
 
