@@ -98,7 +98,7 @@ operations:
     estctl enroll
     ```
 
-    Non-interactive (useful for provisioning scripts):
+    Non-interactive (use with caution when saving plaintext secrets):
 
     ``` bash
     estctl -p "provisioning_secret" enroll
