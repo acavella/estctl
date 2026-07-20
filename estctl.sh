@@ -121,7 +121,6 @@ generate_key_and_csr() {
     echo "[+] CSR generated at: $csr_out"
 }
 
-Bash
 cmd_cacerts() {
     # Dynamically inject the endpoint, stripping any errant leading slash
     local cacerts_url="https://${EST_PUBLIC_SERVER}/${EP_CACERTS#/}"
@@ -240,6 +239,100 @@ cmd_enroll() {
     fi
 
     echo "[+] Success! Enrolled certificate stored at: ${output_pem}"
+    
+    rm -f "$b64_csr" "$output_p7"
+}
+
+cmd_reenroll() {
+    local target_server
+    if [[ "$AUTH_METHOD" == "basic" ]]; then
+        target_server="$EST_PUBLIC_SERVER"
+    elif [[ "$AUTH_METHOD" == "mtls" ]]; then
+        target_server="$EST_ADMIN_SERVER"
+    else
+        echo "Error: Unknown auth method '$AUTH_METHOD'." >&2
+        exit 1
+    fi
+
+    # Dynamically inject the re-enrollment endpoint
+    local reenroll_url="https://${target_server}/${EP_REENROLL#/}"
+    local csr_file="${STATE_DIR}/client.csr"
+    local b64_csr="${STATE_DIR}/client.b64"
+    local output_p7="${STATE_DIR}/enrolled_cert.p7"
+    
+    # Define current and temporary paths for safe rotation
+    local current_pem="${CERTS_DIR}/est_client.pem"
+    local current_key="${PRIV_KEY}"
+    local new_pem="${CERTS_DIR}/est_client.pem.new"
+    local new_key="${PRIV_KEY}.new"
+
+    # Generate the new key securely to a temporary file
+    generate_key_and_csr "$new_key"
+
+    grep -v '^-' "$csr_file" > "$b64_csr"
+
+    echo "[-] Executing simplereenroll request to ${reenroll_url} ..."
+
+    local curl_opts=("-s" "-S" "-f" "-X" "POST")
+    curl_opts+=("-H" "Content-Type: application/pkcs10")
+    curl_opts+=("--data-binary" "@${b64_csr}")
+
+    if [[ "$TLS_VERIFY" != "true" ]]; then
+        curl_opts+=("-k")
+    fi
+
+    if [[ "$AUTH_METHOD" == "basic" ]]; then
+        echo "[-] Authenticating via HTTP Basic Auth."
+        
+        local enroll_pass="$CLI_PASS"
+        if [[ -z "$enroll_pass" ]]; then
+            read -r -s -p "Enter basic auth password for '${AUTH_USER}': " enroll_pass
+            echo ""
+        fi
+
+        if [[ -z "$enroll_pass" ]]; then
+            echo "Error: Password is required for HTTP Basic Authentication." >&2
+            rm -f "$b64_csr" "$new_key"
+            exit 1
+        fi
+
+        curl_opts+=("-u" "${AUTH_USER}:${enroll_pass}")
+        
+    elif [[ "$AUTH_METHOD" == "mtls" ]]; then
+        # For RE-enrollment, we authenticate with the currently active certificate, NOT the bootstrap
+        if [[ ! -f "$current_pem" || ! -f "$current_key" ]]; then
+            echo "Error: Current certificate or key missing. Cannot perform mTLS re-enrollment." >&2
+            rm -f "$b64_csr" "$new_key"
+            exit 1
+        fi
+        
+        echo "[-] Authenticating via mTLS using existing client certificate."
+        curl_opts+=("--cert" "$current_pem" "--key" "$current_key")
+    fi
+
+    if ! curl "${curl_opts[@]}" -o "$output_p7" "$reenroll_url"; then
+        echo "Error: simplereenroll request failed." >&2
+        rm -f "$b64_csr" "$new_key"
+        exit 1
+    fi
+
+    echo "[-] Decoding returned PKCS#7 renewed certificate..."
+
+    if ! openssl pkcs7 -in "$output_p7" -inform DER -print_certs -out "$new_pem" 2>/dev/null; then
+        if ! openssl pkcs7 -in "$output_p7" -inform PEM -print_certs -out "$new_pem" 2>/dev/null; then
+            echo "Error: Failed to parse the received renewed certificate." >&2
+            rm -f "$b64_csr" "$output_p7" "$new_key"
+            exit 1
+        fi
+    fi
+
+    # Atomic swap: Commit the new keys into production
+    mv -f "$new_key" "$current_key"
+    mv -f "$new_pem" "$current_pem"
+
+    echo "[+] Success! Renewed certificate and rotated key stored at:"
+    echo "    Cert: $current_pem"
+    echo "    Key : $current_key"
     
     rm -f "$b64_csr" "$output_p7"
 }
