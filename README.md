@@ -1,2 +1,129 @@
 # estctl
-An RFC 7030  compliant EST Client written in Bash 
+
+A lightweight, RFC 7030-compliant Enrollment over Secure Transport (EST) client written in pure Bash. 
+
+Designed for enterprise Linux environments and DevOps automation, estctl handles initial node provisioning via HTTP Basic Authentication and subsequent secure renewals via mTLS, featuring atomic key rotation to prevent authentication lockouts.
+
+## FEATURES
+
+- RFC 7030 Compliant: Strictly adheres to EST payload requirements (e.g., stripping PEM boundaries for application/pkcs10 POST bodies).
+- Split Authentication Routing: Supports independent authentication methods for initial enrollment (Basic Auth) and re-enrollment (mTLS).
+- Atomic Key Rotation: Securely generates new private keys to a temporary file during simplereenroll, rotating them into production only after the EST server successfully returns the renewed certificate.
+- Dynamic Configuration: Fully driven by a YAML configuration file, allowing custom cryptographic parameters (RSA/ECC) without modifying the core script.
+- Monitoring Ready: Built-in status command evaluates certificate expiration against configurable warning thresholds, exiting with standard codes for easy integration with monitoring agents or systemd timers.
+
+## PREREQUISITES
+
+- bash (v4.0+)
+- curl
+- openssl
+- yq (Mike Farah's Go-based YAML processor)
+- GNU date (coreutils)
+
+## INSTALLATION
+
+1. Clone the repository and place the script in your system path:
+
+    ``` bash
+    git clone https://github.com/acavella/estctl.git
+    cd estctl
+    sudo cp estctl /usr/local/bin/estctl
+    sudo chmod +x /usr/local/bin/estctl
+    ```
+
+2. Create the configuration and state directories:
+
+    ``` bash
+    sudo mkdir -p /etc/estctl /var/lib/estctl
+    ```
+
+3. Copy the example configuration file:
+
+    ``` bash
+    sudo cp config.example.yaml /etc/estctl/config.yaml
+    sudo chmod 600 /etc/estctl/config.yaml
+    ```
+
+## CONFIGURATION
+
+estctl reads from `/etc/estctl/config.yaml` by default. You can define server targets, authentication methods, and cryptographic request parameters.
+
+``` yaml
+server:
+  host: "est.example.com"
+  public_port: 443
+  admin_port: 8443
+  tls_verify: true
+
+endpoints:
+  cacerts: ".well-known/est/cacerts"
+  simpleenroll: ".well-known/est/simpleenroll"
+  simplereenroll: ".well-known/est/simplereenroll"
+
+paths:
+  config_dir: "/etc/estctl"
+  state_dir: "/var/lib/estctl"
+  certs_dir: "/etc/pki/tls/certs"
+  private_key: "/etc/pki/tls/private/est_client.key"
+  bootstrap_cert: "/etc/pki/tls/certs/bootstrap.pem"
+  bootstrap_key: "/etc/pki/tls/private/bootstrap.key"
+
+auth:
+  enroll_method: "basic"    # basic or mtls
+  reenroll_method: "mtls"   # basic or mtls
+  username: "est_user"
+
+csr_defaults:
+  key: "rsa4096"            # Options: rsa2048, rsa3072, rsa4096, secp384r1
+  hash: "sha384"            # Options: sha256, sha384
+  cn: "endpoint.example.com"
+
+operations:
+  renew_warning_days: 30
+```
+
+## USAGE
+
+1. Retrieve the CA Trust Anchor
+Fetch the CA certificates from the EST responder to establish initial trust.
+
+    estctl cacerts
+
+1. Initial Enrollment
+Generate a private key and CSR, and submit an enrollment request. If using Basic Auth, you can supply the password interactively (the script will securely prompt you) or via the -p CLI flag for automation.
+
+    Interactive prompt for password:
+    estctl enroll
+
+    Non-interactive (useful for provisioning scripts):
+    estctl -p "provisioning_secret" enroll
+
+1. Certificate Renewal (Re-enrollment)
+Request a renewal using the current active certificate for mTLS authentication. The script will generate a .new private key and swap it atomically upon success.
+
+    estctl reenroll
+
+1. Check Certificate Status
+Evaluate the active certificate against the configured renew_warning_days threshold.
+
+    estctl status
+
+    Exit 0: Valid (or within the warning window)
+    Exit 1: Execution error / file missing
+    Exit 2: Certificate is fully expired
+
+
+AUTOMATION EXAMPLE
+--------------------------------------------------------------------------------
+Because estctl handles its own exit codes gracefully, you can automate renewals using a simple cron job or systemd timer:
+
+Check status daily; if it returns a warning or expired state, trigger re-enrollment:
+    
+    estctl status || estctl reenroll
+
+
+LICENSE
+--------------------------------------------------------------------------------
+MIT License. See LICENSE for more information.
+
+Author: Tony Cavella (@acavella)
