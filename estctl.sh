@@ -32,6 +32,7 @@ An RFC 7030 EST client script for certificate lifecycle management.
 
 Options:
   -c, --config <path>        Path to configuration YAML (Default: $CONFIG_FILE)
+  -p, --password <string>    Provide basic auth password (skips interactive prompt)
   -h, --help                 Show this help message
 
 Commands:
