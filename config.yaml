@@ -19,7 +19,8 @@ paths:
   bootstrap_key: "/etc/pki/tls/private/bootstrap.key" # Used for initial enrollment when using mtls auth method
 
 auth:
-  method: "basic" # basic or mtls
+  enroll_method: "basic"    # Authentication for initial enrollment (basic or mtls)
+  reenroll_method: "mtls"   # Authentication for renewals (basic or mtls)
   username: "est_user" #Password provided interactively at runtime or via -p CLI flag
 
 csr_defaults:
