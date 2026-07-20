@@ -86,6 +86,10 @@ load_config() {
     CSR_HASH=$(yq '.csr_defaults.hash' "$CONFIG_FILE")
     CSR_CN=$(yq '.csr_defaults.cn' "$CONFIG_FILE")
 
+    # Operations
+    RENEW_WARNING_DAYS=$(yq '.operations.renew_warning_days' "$CONFIG_FILE")
+    [[ "$RENEW_WARNING_DAYS" == "null" || -z "$RENEW_WARNING_DAYS" ]] && RENEW_WARNING_DAYS=30
+
     # Targets
     EST_PUBLIC_SERVER="${EST_HOST}:${EST_PUBLIC_PORT}"
     EST_ADMIN_SERVER="${EST_HOST}:${EST_ADMIN_PORT}"
@@ -365,7 +369,7 @@ cmd_status() {
         exit 1
     fi
 
-    # 3. Convert dates to Unix Epoch for math (Standard GNU date format)
+    # 3. Convert dates to Unix Epoch for math
     local exp_epoch
     local now_epoch
     exp_epoch=$(date -d "$expiration_date" +%s 2>/dev/null) || {
@@ -385,12 +389,13 @@ cmd_status() {
     echo "    Issuer:     $issuer"
     echo "    Valid Until: $expiration_date"
 
-    # 6. Evaluate health and exit accordingly
+    # 6. Evaluate health against the configured threshold
     if [[ $days_remaining -lt 0 ]]; then
         echo "    State:       [ EXPIRED ] ($(( -days_remaining )) days ago)"
-        exit 2 # Unique exit code for monitoring alerts
-    elif [[ $days_remaining -le 30 ]]; then
-        echo "    State:       [ WARNING ] ($days_remaining days remaining - renewal recommended)"
+        exit 2 
+    elif [[ $days_remaining -le "$RENEW_WARNING_DAYS" ]]; then
+        echo "    State:       [ WARNING ] ($days_remaining days remaining - within $RENEW_WARNING_DAYS day threshold)"
+        # Note: You can change this to exit 3 or another code if your monitoring system needs a distinct "warning" state
     else
         echo "    State:       [ VALID ] ($days_remaining days remaining)"
     fi
