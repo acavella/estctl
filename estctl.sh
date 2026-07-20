@@ -437,8 +437,11 @@ case "$1" in
     reenroll)
         cmd_reenroll
         ;;
+    status)
+        cmd_status
+        ;;
     *)
-        echo "Usage: estctl [-c config.yaml] [-p password] {cacerts|enroll|reenroll}" >&2
+        echo "Usage: estctl [-c config.yaml] [-p password] {cacerts|enroll|reenroll|status}" >&2
         exit 1
         ;;
 esac
