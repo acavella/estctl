@@ -127,29 +127,27 @@ generate_key_and_csr() {
     echo "[+] CSR generated at: $csr_out"
 }
 
+Bash
 cmd_cacerts() {
-    local cacerts_url="https://${EST_PUBLIC_SERVER}/.well-known/est/cacerts"
+    # Dynamically inject the endpoint, stripping any errant leading slash
+    local cacerts_url="https://${EST_PUBLIC_SERVER}/${EP_CACERTS#/}"
     local output_p7="${STATE_DIR}/cacerts.p7"
     local output_pem="${CERTS_DIR}/est_ca_trust.pem"
     
-    # Ensure target directories exist
     mkdir -p "$STATE_DIR" "$CERTS_DIR"
 
-    # Set curl verification flags based on config
-    local curl_opts=("-s" "-S" "-f" "--tlsv1.2")
+    local curl_opts=("-s" "-S" "-f")
     if [[ "$TLS_VERIFY" != "true" ]]; then
         curl_opts+=("-k")
     fi
 
     echo "[-] Fetching CA certificates from ${cacerts_url} ..."
     
-    # 1. Fetch the raw PKCS#7 data from the EST server
     if ! curl "${curl_opts[@]}" -o "$output_p7" "$cacerts_url"; then
         echo "Error: Failed to fetch CA certificates from EST server." >&2
         exit 1
     fi
 
-    # Check if the file is empty (some servers return 204 or empty on misconfiguration)
     if [[ ! -s "$output_p7" ]]; then
         echo "Error: Received an empty response from the EST server." >&2
         rm -f "$output_p7"
@@ -158,11 +156,7 @@ cmd_cacerts() {
 
     echo "[-] Decoding PKCS#7 certificate bundle..."
 
-    # 2. RFC 7030 allows the response to be base64 wrapped or raw DER. 
-    # OpenSSL's pkcs7 tool handles both if we pipe it cleanly, but it expects PEM or DER.
-    # We attempt to print it out as clean text/PEM.
     if ! openssl pkcs7 -in "$output_p7" -inform DER -print_certs -out "$output_pem" 2>/dev/null; then
-        # If raw DER parsing fails, the server likely returned it as base64-encoded text (PEM-ish)
         if ! openssl pkcs7 -in "$output_p7" -inform PEM -print_certs -out "$output_pem" 2>/dev/null; then
             echo "Error: Failed to parse the received data as a valid PKCS#7 bundle." >&2
             rm -f "$output_p7"
@@ -171,13 +165,10 @@ cmd_cacerts() {
     fi
 
     echo "[+] Success! CA certificates stored in PEM format at: ${output_pem}"
-    
-    # Clean up the raw transit file
     rm -f "$output_p7"
 }
 
 cmd_enroll() {
-    # 1. Determine target server based on authentication method
     local target_server
     if [[ "$AUTH_METHOD" == "basic" ]]; then
         target_server="$EST_PUBLIC_SERVER"
@@ -188,7 +179,8 @@ cmd_enroll() {
         exit 1
     fi
 
-    local enroll_url="https://${target_server}/.well-known/est/simpleenroll"
+    # Dynamically inject the enrollment endpoint, stripping any errant leading slash
+    local enroll_url="https://${target_server}/${EP_ENROLL#/}"
     local csr_file="${STATE_DIR}/client.csr"
     local b64_csr="${STATE_DIR}/client.b64"
     local output_p7="${STATE_DIR}/enrolled_cert.p7"
@@ -209,18 +201,15 @@ cmd_enroll() {
         curl_opts+=("-k")
     fi
 
-    # 5. Append authentication-specific curl flags
     if [[ "$AUTH_METHOD" == "basic" ]]; then
         echo "[-] Authenticating via HTTP Basic Auth."
         
-        # Check if password was provided via CLI, otherwise prompt interactively
         local enroll_pass="$CLI_PASS"
         if [[ -z "$enroll_pass" ]]; then
             read -r -s -p "Enter basic auth password for '${AUTH_USER}': " enroll_pass
-            echo "" # Add a newline since read -s suppresses the return key
+            echo ""
         fi
 
-        # Final sanity check
         if [[ -z "$enroll_pass" ]]; then
             echo "Error: Password is required for HTTP Basic Authentication." >&2
             rm -f "$b64_csr"
@@ -240,7 +229,6 @@ cmd_enroll() {
         curl_opts+=("--cert" "$BOOTSTRAP_CERT" "--key" "$BOOTSTRAP_KEY")
     fi
 
-    # 6. Execute transport
     if ! curl "${curl_opts[@]}" -o "$output_p7" "$enroll_url"; then
         echo "Error: simpleenroll request failed." >&2
         rm -f "$b64_csr"
