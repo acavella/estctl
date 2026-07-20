@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 #
-# estctl - RFC 7030 Enrollment over Secure Transport (EST) Client
+# estctl.sh - EST Client for Certificate Enrollment and Management
+# Description: RFC 7030 compliant client for certificate enrollment, re-enrollment, and CA trust anchor retrieval.
+# Author: Tony Cavella <tony@cavella.com>
+# Dependencies: yq, curl, openssl
+# Usage: ./estctl.sh [-c config.yaml] [-p password] {cacerts|enroll|reenroll|status}
 #
 
 set -eo pipefail
