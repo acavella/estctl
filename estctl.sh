@@ -73,8 +73,13 @@ load_config() {
     BOOTSTRAP_KEY=$(yq '.paths.bootstrap_key' "$CONFIG_FILE")
     
     # Auth
-    AUTH_METHOD=$(yq '.auth.method' "$CONFIG_FILE")
+    ENROLL_AUTH_METHOD=$(yq '.auth.enroll_method' "$CONFIG_FILE")
+    REENROLL_AUTH_METHOD=$(yq '.auth.reenroll_method' "$CONFIG_FILE")
     AUTH_USER=$(yq '.auth.username' "$CONFIG_FILE")
+    
+    # Fallbacks just in case the keys are empty
+    [[ "$ENROLL_AUTH_METHOD" == "null" || -z "$ENROLL_AUTH_METHOD" ]] && ENROLL_AUTH_METHOD="basic"
+    [[ "$REENROLL_AUTH_METHOD" == "null" || -z "$REENROLL_AUTH_METHOD" ]] && REENROLL_AUTH_METHOD="mtls"
 
     # Cryptographic CSR Variables
     CSR_KEY=$(yq '.csr_defaults.key' "$CONFIG_FILE")
