@@ -48,12 +48,23 @@ load_config() {
         exit 1
     fi
 
-    # Read values using yq
+    # Server Core
     EST_HOST=$(yq '.server.host' "$CONFIG_FILE")
     EST_PUBLIC_PORT=$(yq '.server.public_port' "$CONFIG_FILE")
     EST_ADMIN_PORT=$(yq '.server.admin_port' "$CONFIG_FILE")
     TLS_VERIFY=$(yq '.server.tls_verify' "$CONFIG_FILE")
     
+    # Endpoints (with RFC 7030 defaults if missing)
+    EP_CACERTS=$(yq '.endpoints.cacerts' "$CONFIG_FILE")
+    [[ "$EP_CACERTS" == "null" || -z "$EP_CACERTS" ]] && EP_CACERTS=".well-known/est/cacerts"
+
+    EP_ENROLL=$(yq '.endpoints.simpleenroll' "$CONFIG_FILE")
+    [[ "$EP_ENROLL" == "null" || -z "$EP_ENROLL" ]] && EP_ENROLL=".well-known/est/simpleenroll"
+
+    EP_REENROLL=$(yq '.endpoints.simplereenroll' "$CONFIG_FILE")
+    [[ "$EP_REENROLL" == "null" || -z "$EP_REENROLL" ]] && EP_REENROLL=".well-known/est/simplereenroll"
+    
+    # Paths
     CONFIG_DIR=$(yq '.paths.config_dir' "$CONFIG_FILE")
     STATE_DIR=$(yq '.paths.state_dir' "$CONFIG_FILE")
     CERTS_DIR=$(yq '.paths.certs_dir' "$CONFIG_FILE")
@@ -61,6 +72,7 @@ load_config() {
     BOOTSTRAP_CERT=$(yq '.paths.bootstrap_cert' "$CONFIG_FILE")
     BOOTSTRAP_KEY=$(yq '.paths.bootstrap_key' "$CONFIG_FILE")
     
+    # Auth
     AUTH_METHOD=$(yq '.auth.method' "$CONFIG_FILE")
     AUTH_USER=$(yq '.auth.username' "$CONFIG_FILE")
 
@@ -69,7 +81,7 @@ load_config() {
     CSR_HASH=$(yq '.csr_defaults.hash' "$CONFIG_FILE")
     CSR_CN=$(yq '.csr_defaults.cn' "$CONFIG_FILE")
 
-    # Construct the base target addresses
+    # Targets
     EST_PUBLIC_SERVER="${EST_HOST}:${EST_PUBLIC_PORT}"
     EST_ADMIN_SERVER="${EST_HOST}:${EST_ADMIN_PORT}"
 }
