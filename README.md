@@ -1,6 +1,6 @@
 # estctl
 
-A lightweight, RFC 7030-compliant Enrollment over Secure Transport (EST) client written in pure Bash. 
+A lightweight, RFC 7030-compliant Enrollment over Secure Transport (EST) client written in pure Bash.
 
 Designed for enterprise Linux environments and DevOps automation, estctl handles initial node provisioning via HTTP Basic Authentication and subsequent secure renewals via mTLS, featuring atomic key rotation to prevent authentication lockouts.
 
@@ -84,46 +84,54 @@ operations:
 
 ## USAGE
 
-1. Retrieve the CA Trust Anchor
-Fetch the CA certificates from the EST responder to establish initial trust.
+1. **Retrieve the CA Trust Anchor** - Fetch the CA certificates from the EST responder to establish initial trust.
 
+    ``` bash
     estctl cacerts
+    ```
 
-1. Initial Enrollment
-Generate a private key and CSR, and submit an enrollment request. If using Basic Auth, you can supply the password interactively (the script will securely prompt you) or via the -p CLI flag for automation.
+2. **Initial Enrollment** - Generate a private key and CSR, and submit an enrollment request. If using Basic Auth, you can supply the password interactively (the script will securely prompt you) or via the -p CLI flag for automation.
 
     Interactive prompt for password:
+
+    ``` bash
     estctl enroll
+    ```
 
     Non-interactive (useful for provisioning scripts):
+
+    ``` bash
     estctl -p "provisioning_secret" enroll
+    ```
 
-1. Certificate Renewal (Re-enrollment)
-Request a renewal using the current active certificate for mTLS authentication. The script will generate a .new private key and swap it atomically upon success.
+3. **Certificate Renewal (Re-enrollment)** - Request a renewal using the current active certificate for mTLS authentication. The script will generate a .new private key and swap it atomically upon success.
 
+    ``` bash
     estctl reenroll
+    ```
 
-1. Check Certificate Status
-Evaluate the active certificate against the configured renew_warning_days threshold.
+4. **Check Certificate Status** - Evaluate the active certificate against the configured renew_warning_days threshold.
 
+    ``` bash
     estctl status
+    ```
 
     Exit 0: Valid (or within the warning window)
     Exit 1: Execution error / file missing
     Exit 2: Certificate is fully expired
 
+## AUTOMATION EXAMPLE
 
-AUTOMATION EXAMPLE
---------------------------------------------------------------------------------
 Because estctl handles its own exit codes gracefully, you can automate renewals using a simple cron job or systemd timer:
 
 Check status daily; if it returns a warning or expired state, trigger re-enrollment:
-    
-    estctl status || estctl reenroll
 
+``` bash
+estctl status || estctl reenroll
+```
 
-LICENSE
---------------------------------------------------------------------------------
-MIT License. See LICENSE for more information.
+## LICENSE
 
-Author: Tony Cavella (@acavella)
+MIT License. See [LICENSE] for more information.
+
+Author: [Tony Cavella](tony@cavella.com)
