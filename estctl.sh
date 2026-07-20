@@ -367,7 +367,17 @@ done
 load_config
 
 case "$1" in
-    cacerts) cmd_cacerts ;;
-    enroll)  cmd_enroll ;;
-    *)       echo "Usage: estctl [-c config.yaml] {cacerts|enroll}" >&2; exit 1 ;;
+    cacerts)
+        cmd_cacerts
+        ;;
+    enroll)
+        cmd_enroll
+        ;;
+    reenroll)
+        cmd_reenroll
+        ;;
+    *)
+        echo "Usage: estctl [-c config.yaml] [-p password] {cacerts|enroll|reenroll}" >&2
+        exit 1
+        ;;
 esac
