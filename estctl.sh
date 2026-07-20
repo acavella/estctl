@@ -240,52 +240,18 @@ cmd_enroll() {
     rm -f "$b64_csr" "$output_p7"
 }
 
-# --- Parse Global Options ---
+# --- Main Runtime Routing ---
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        -c|--config)
-            CONFIG_FILE="$2"
-            shift 2
-            ;;
-        -h|--help)
-            show_help
-            exit 0
-            ;;
-        -*)
-            echo "Error: Unknown option $1" >&2
-            show_help
-            exit 1
-            ;;
-        *)
-            break
-            ;;
+        -c|--config) CONFIG_FILE="$2"; shift 2 ;;
+        *) break ;;
     esac
 done
 
-# --- Initialize and Execute ---
 load_config
 
-COMMAND="$1"
-shift 2>/dev/null || true
-
-case "$COMMAND" in
-    cacerts)
-        cmd_cacerts "$@"
-        ;;
-    enroll)
-        cmd_enroll "$@"
-        ;;
-    reenroll)
-        echo "[-] Re-enrolling..."
-        ;;
-    "")
-        echo "Error: Missing command." >&2
-        show_help
-        exit 1
-        ;;
-    *)
-        echo "Error: Invalid command '$COMMAND'." >&2
-        show_help
-        exit 1
-        ;;
+case "$1" in
+    cacerts) cmd_cacerts ;;
+    enroll)  cmd_enroll ;;
+    *)       echo "Usage: estctl [-c config.yaml] {cacerts|enroll}" >&2; exit 1 ;;
 esac

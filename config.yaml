@@ -15,8 +15,7 @@ paths:
 
 auth:
   method: "basic" # basic or mtls
-  username: "est_user"
-  password: "secure_password_here"
+  username: "est_user" #Password provided interactively at runtime or via -p CLI flag
 
 csr_defaults:
   key: "rsa4096"        # Options: rsa2048, rsa3072, rsa4096, secp384r1
