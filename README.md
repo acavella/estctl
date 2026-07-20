@@ -4,7 +4,7 @@ A lightweight, RFC 7030-compliant Enrollment over Secure Transport (EST) client 
 
 Designed for enterprise Linux environments and DevOps automation, estctl handles initial node provisioning via HTTP Basic Authentication and subsequent secure renewals via mTLS, featuring atomic key rotation to prevent authentication lockouts.
 
-## FEATURES
+## Features
 
 - RFC 7030 Compliant: Strictly adheres to EST payload requirements (e.g., stripping PEM boundaries for application/pkcs10 POST bodies).
 - Split Authentication Routing: Supports independent authentication methods for initial enrollment (Basic Auth) and re-enrollment (mTLS).
@@ -12,7 +12,7 @@ Designed for enterprise Linux environments and DevOps automation, estctl handles
 - Dynamic Configuration: Fully driven by a YAML configuration file, allowing custom cryptographic parameters (RSA/ECC) without modifying the core script.
 - Monitoring Ready: Built-in status command evaluates certificate expiration against configurable warning thresholds, exiting with standard codes for easy integration with monitoring agents or systemd timers.
 
-## PREREQUISITES
+## Prerequisites
 
 - bash (v4.0+)
 - curl
@@ -20,7 +20,7 @@ Designed for enterprise Linux environments and DevOps automation, estctl handles
 - yq (Mike Farah's Go-based YAML processor)
 - GNU date (coreutils)
 
-## INSTALLATION
+## Installation
 
 1. Clone the repository and place the script in your system path:
 
@@ -44,7 +44,7 @@ Designed for enterprise Linux environments and DevOps automation, estctl handles
     sudo chmod 600 /etc/estctl/config.yaml
     ```
 
-## CONFIGURATION
+## Configuration
 
 estctl reads from `/etc/estctl/config.yaml` by default. You can define server targets, authentication methods, and cryptographic request parameters.
 
@@ -82,7 +82,7 @@ operations:
   renew_warning_days: 30
 ```
 
-## USAGE
+## Usage
 
 1. **Retrieve the CA Trust Anchor** - Fetch the CA certificates from the EST responder to establish initial trust.
 
@@ -131,7 +131,7 @@ operations:
     estctl status || estctl reenroll
     ```
 
-## LICENSE
+## License
 
 MIT License. See [LICENSE] for more information.
 
