@@ -48,6 +48,7 @@ Commands:
   cacerts                    Retrieve the CA Certificates trust anchor
   enroll                     Enroll a new certificate (requires CSR)
   reenroll                   Renew an existing certificate
+  status                     Check the status of the enrolled certificate
 EOF
 }
 
