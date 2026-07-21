@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 #
 # estctl.sh - EST Client for Certificate Enrollment and Management
-# Description: RFC 7030 compliant client for certificate enrollment, re-enrollment, and CA trust anchor retrieval.
+#
+# Description: RFC 7030 compliant EST client script for certificate lifecycle management. 
 # Author: Tony Cavella <tony@cavella.com>
-# Dependencies: yq, curl, openssl
+# Dependencies: yq, curl, openssl, GNU date
 # Usage: ./estctl.sh [-c config.yaml] [-p password] {cacerts|enroll|reenroll|status}
+#
+# Copyright (c) 2026 Tony Cavella <tony@cavella.com>
+#
+# This source code is licensed under the MIT license found in the
+# LICENSE file in the root directory of this source tree.
 #
 
 set -eo pipefail
