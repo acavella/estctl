@@ -48,7 +48,8 @@ Commands:
   cacerts                    Retrieve the CA Certificates trust anchor
   enroll                     Enroll a new certificate (requires CSR)
   reenroll                   Renew an existing certificate
-  status                     Check the status of the enrolled certificate
+  status                     Check current certificate expiration status
+  autorenew                  Check status and automatically reenroll if within warning threshold
 EOF
 }
 
@@ -356,6 +357,48 @@ cmd_reenroll() {
     rm -f "$b64_csr" "$output_p7"
 }
 
+cmd_autorenew() {
+    local cert_file="${CERTS_DIR}/est_client.pem"
+    
+    # 1. Ensure the certificate exists
+    if [[ ! -f "$cert_file" ]]; then
+        echo "Error: Certificate not found at $cert_file" >&2
+        echo "Cannot evaluate auto-renewal. The node must be enrolled first." >&2
+        exit 1
+    fi
+
+    # 2. Extract expiration date
+    local expiration_date
+    expiration_date=$(openssl x509 -enddate -noout -in "$cert_file" | cut -d= -f2)
+
+    if [[ -z "$expiration_date" ]]; then
+        echo "Error: Could not parse expiration date from $cert_file" >&2
+        exit 1
+    fi
+
+    # 3. Calculate the delta
+    local exp_epoch
+    local now_epoch
+    exp_epoch=$(date -d "$expiration_date" +%s 2>/dev/null) || {
+        echo "Error: Could not parse date string '$expiration_date'." >&2
+        exit 1
+    }
+    now_epoch=$(date +%s)
+
+    local diff_sec=$(( exp_epoch - now_epoch ))
+    local days_remaining=$(( diff_sec / 86400 ))
+
+    # 4. Evaluate and execute
+    if [[ $days_remaining -le "$RENEW_WARNING_DAYS" ]]; then
+        echo "[-] Threshold reached: $days_remaining days remaining (Warning limit: $RENEW_WARNING_DAYS)."
+        echo "[-] Triggering automated re-enrollment..."
+        cmd_reenroll
+    else
+        echo "[-] Certificate healthy: $days_remaining days remaining. No action required."
+        exit 0
+    fi
+}
+
 cmd_status() {
     local cert_file="${CERTS_DIR}/est_client.pem"
     
@@ -455,8 +498,11 @@ case "$1" in
     status)
         cmd_status
         ;;
+    autorenew)
+        cmd_autorenew
+        ;;
     *)
-        echo "Usage: estctl [-c config.yaml] [-p password] {cacerts|enroll|reenroll|status}" >&2
+        echo "Usage: estctl [-c config.yaml] [-p password] {cacerts|enroll|reenroll|status|autorenew}" >&2
         exit 1
         ;;
 esac

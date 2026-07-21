@@ -11,6 +11,7 @@ Designed for enterprise Linux environments and DevOps automation, estctl handles
 - Atomic Key Rotation: Securely generates new private keys to a temporary file during simplereenroll, rotating them into production only after the EST server successfully returns the renewed certificate.
 - Dynamic Configuration: Fully driven by a YAML configuration file, allowing custom cryptographic parameters (RSA/ECC) without modifying the core script.
 - Monitoring Ready: Built-in status command evaluates certificate expiration against configurable warning thresholds, exiting with standard codes for easy integration with monitoring agents or systemd timers.
+- Automatic Renewal: Automatically execute simplereenroll based on defined certificate warning and renewal thresholds ensuring you never have an expired system certificate.
 
 ## Prerequisites
 
@@ -121,14 +122,19 @@ operations:
     - 1: Execution error / file missing
     - 2: Certificate is fully expired
 
-    **Automation Example**
-
-    Because estctl handles its own exit codes gracefully, you can automate renewals using a simple cron job or systemd timer:
-
-    Check status daily; if it returns a warning or expired state, trigger re-enrollment:
+5. **Automated Renewal** - Evaluate the active certificate and automatically trigger a re-enrollment if the expiration is within the configured `renew_warning_days` threshold.
 
     ``` bash
-    estctl status || estctl reenroll
+    estctl autorenew
+    ```
+
+    **Crontab Example**
+    Because estctl handles its own math and exit codes gracefully, you can fully automate the certificate lifecycle using a standard cron job.
+
+    To check the certificate status daily at 2:00 AM and silently renew only if it falls within the warning threshold, add the following to /etc/crontab:
+
+    ``` bash
+    0 2 * * * root /usr/local/bin/estctl autorenew
     ```
 
 ## License
