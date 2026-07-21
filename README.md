@@ -6,12 +6,12 @@ Designed for enterprise Linux environments and DevOps automation, estctl handles
 
 ## Features
 
-- RFC 7030 Compliant: Strictly adheres to EST payload requirements (e.g., stripping PEM boundaries for application/pkcs10 POST bodies).
-- Split Authentication Routing: Supports independent authentication methods for initial enrollment (Basic Auth) and re-enrollment (mTLS).
-- Atomic Key Rotation: Securely generates new private keys to a temporary file during simplereenroll, rotating them into production only after the EST server successfully returns the renewed certificate.
-- Dynamic Configuration: Fully driven by a YAML configuration file, allowing custom cryptographic parameters (RSA/ECC) without modifying the core script.
-- Monitoring Ready: Built-in status command evaluates certificate expiration against configurable warning thresholds, exiting with standard codes for easy integration with monitoring agents or systemd timers.
-- Automatic Renewal: Automatically execute simplereenroll based on defined certificate warning and renewal thresholds ensuring you never have an expired system certificate.
+- **RFC 7030 Compliant:** Strictly adheres to EST payload requirements (e.g., stripping PEM boundaries for application/pkcs10 POST bodies).
+- **Split Authentication Routing:** Supports independent authentication methods for initial enrollment (Basic Auth) and re-enrollment (mTLS).
+- **Atomic Key Rotation:** Securely generates new private keys to a temporary file during simplereenroll, rotating them into production only after the EST server successfully returns the renewed certificate.
+- **Dynamic Configuration:** Fully driven by a YAML configuration file, allowing custom cryptographic parameters (RSA/ECC) without modifying the core script.
+- **Monitoring Ready:** Built-in status command evaluates certificate expiration against configurable warning thresholds, exiting with standard codes for easy integration with monitoring agents or systemd timers.
+- **Automatic Renewal:** Automatically execute simplereenroll based on defined certificate warning and renewal thresholds ensuring you never have an expired system certificate.
 
 ## Prerequisites
 
