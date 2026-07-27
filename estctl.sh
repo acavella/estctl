@@ -14,8 +14,19 @@
 
 set -eo pipefail
 
-# --- Defaults ---
-CONFIG_FILE="config.yaml"
+# --- Dynamic Configuration Defaults ---
+# Resolve the absolute path of the directory containing this script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+
+# Check locations in order of precedence
+if [[ -f "/etc/estctl/config.yaml" ]]; then
+    CONFIG_FILE="/etc/estctl/config.yaml"
+elif [[ -f "${SCRIPT_DIR}/config.yaml" ]]; then
+    CONFIG_FILE="${SCRIPT_DIR}/config.yaml"
+else
+    # Fall back to the system path so the error message is clear if neither exists
+    CONFIG_FILE="/etc/estctl/config.yaml"
+fi
 
 # --- Dependencies Check ---
 if ! command -v yq &> /dev/null; then
