@@ -132,7 +132,7 @@ operations:
 
     Because estctl handles its own math and exit codes gracefully, you can fully automate the certificate lifecycle using a standard cron job.
 
-    To check the certificate status daily at 2:00 AM and silently renew only if it falls within the warning threshold, add the following to /etc/crontab:
+    To check the certificate status daily at 2:00 AM and silently renew only if it falls within the warning threshold, add the following to `/etc/crontab`:
 
     ``` bash
     0 2 * * * root /usr/local/bin/estctl autorenew
