@@ -28,7 +28,7 @@ Designed for enterprise Linux environments and DevOps automation, estctl handles
     ``` bash
     git clone https://github.com/acavella/estctl.git
     cd estctl
-    sudo cp estctl /usr/local/bin/estctl
+    sudo cp estctl.sh /usr/local/bin/estctl
     sudo chmod +x /usr/local/bin/estctl
     ```
 
