@@ -180,6 +180,15 @@ cmd_cacerts() {
 
     echo "[-] Decoding PKCS#7 certificate bundle..."
 
+    # Evaluate if output_p7 is missing the PKCS7 PEM header
+    if ! grep -q '-----BEGIN PKCS7-----' "$output_p7" 2>/dev/null; then
+        local tmp_p7="${output_p7}.tmp"
+        echo "-----BEGIN PKCS7-----" > "$tmp_p7"
+        cat "$output_p7" >> "$tmp_p7"
+        echo "-----END PKCS7-----" >> "$tmp_p7"
+        mv -f "$tmp_p7" "$output_p7"
+    fi
+
     if ! openssl pkcs7 -in "$output_p7" -inform DER -print_certs -out "$output_pem" 2>/dev/null; then
         if ! openssl pkcs7 -in "$output_p7" -inform PEM -print_certs -out "$output_pem" 2>/dev/null; then
             echo "Error: Failed to parse the received data as a valid PKCS#7 bundle." >&2
