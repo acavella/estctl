@@ -347,7 +347,7 @@ cmd_reenroll() {
 
         curl_opts+=("-u" "${AUTH_USER}:${enroll_pass}")
         
-    elif [[ "$AUTH_METHOD" == "mtls" ]]; then
+    elif [[ "$REENROLL_AUTH_METHOD" == "mtls" ]]; then
         # For RE-enrollment, we authenticate with the currently active certificate, NOT the bootstrap
         if [[ ! -f "$current_pem" || ! -f "$current_key" ]]; then
             echo "Error: Current certificate or key missing. Cannot perform mTLS re-enrollment." >&2
